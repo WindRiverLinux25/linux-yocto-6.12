@@ -198,7 +198,7 @@ static struct spi_mem_op spi_nor_spimem_get_read_op(struct spi_nor *nor)
 		SPI_MEM_OP(SPI_MEM_OP_CMD(nor->read_opcode, 0),
 			   SPI_MEM_OP_ADDR(nor->addr_nbytes, 0, 0),
 			   SPI_MEM_OP_DUMMY(nor->read_dummy, 0),
-			   SPI_MEM_OP_DATA_IN(1, NULL, 0));
+			   SPI_MEM_OP_DATA_IN(2, NULL, 0));
 
 	spi_nor_spimem_setup_op(nor, &op, nor->read_proto);
 
@@ -2438,7 +2438,7 @@ static int spi_nor_spimem_check_readop(struct spi_nor *nor,
 	/* convert the dummy cycles to the number of bytes */
 	op.dummy.nbytes = (read->num_mode_clocks + read->num_wait_states) *
 			  op.dummy.buswidth / 8;
-	if (spi_nor_protocol_is_dtr(nor->read_proto))
+	if (spi_nor_protocol_is_dtr(read->proto))
 		op.dummy.nbytes *= 2;
 
 	return spi_nor_spimem_check_op(nor, &op);
