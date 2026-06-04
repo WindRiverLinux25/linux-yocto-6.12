@@ -152,6 +152,14 @@ do {									\
 		else							\
 			_sdata_err((link)->sdata, fmt, ##__VA_ARGS__);	\
 	} while (0)
+#define link_id_info(sdata, link_id, fmt, ...)				\
+	do {								\
+		if (ieee80211_vif_is_mld(&sdata->vif))			\
+			_sdata_info(sdata, "[link %d] " fmt, link_id,	\
+				    ##__VA_ARGS__);			\
+		else							\
+			_sdata_info(sdata, fmt, ##__VA_ARGS__);		\
+	} while (0)
 #define _link_id_dbg(print, sdata, link_id, fmt, ...)			\
 	do {								\
 		if (ieee80211_vif_is_mld(&(sdata)->vif))		\
