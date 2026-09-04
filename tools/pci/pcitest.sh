@@ -1,17 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-2.0
 
-
-check_status()
-{
-        result="$1"
-        echo $result
-        if [ -z "${result}" ];
-                then return 0
-        fi
-        return 1
-}
-
 echo "BAR tests"
 echo
 
@@ -29,35 +18,24 @@ echo
 
 pcitest -i 0
 pcitest -l
-echo
 
-msi=33
-check_status "`pcitest -i 1`"
-[ "$?" -eq "1" ] && msi=1
+pcitest -i 1
+msi=1
 
 while [ $msi -lt 33 ]
 do
-        check_status "`pcitest -m $msi`"
-        if [ "$?" -eq "1" ]; then
-                msi=`expr $msi + 1`
-        else
-                msi=33
-        fi
+        pcitest -m $msi
+        msi=`expr $msi + 1`
 done
 echo
 
-msix=2049
-check_status "`pcitest -i 2`"
-[ "$?" -eq "1" ] && msix=1
+pcitest -i 2
+msix=1
 
 while [ $msix -lt 2049 ]
 do
-        check_status "`pcitest -m $msix`"
-        if [ "$?" -eq "1" ]; then
-                msix=`expr $msix + 1`
-        else
-                msix=2049
-        fi
+        pcitest -x $msix
+        msix=`expr $msix + 1`
 done
 echo
 

@@ -23,7 +23,6 @@ obj-y				+= loongson/
 obj-y				+= mediatek/
 obj-y				+= microchip/
 obj-y				+= nuvoton/
-obj-y				+= nxp/
 obj-y				+= pxa/
 obj-y				+= amlogic/
 obj-y				+= qcom/
