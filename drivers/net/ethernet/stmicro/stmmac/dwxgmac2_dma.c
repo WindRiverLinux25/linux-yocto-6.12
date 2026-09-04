@@ -86,25 +86,25 @@ static void dwxgmac2_dma_axi(void __iomem *ioaddr, struct stmmac_axi *axi)
 	u32 value = readl(ioaddr + XGMAC_DMA_SYSBUS_MODE);
 	int i;
 
-	if (axi->lpi_en)
+	if (axi->axi_lpi_en)
 		value |= XGMAC_EN_LPI;
-	if (axi->xit_frm)
+	if (axi->axi_xit_frm)
 		value |= XGMAC_LPI_XIT_PKT;
 
 	value &= ~XGMAC_WR_OSR_LMT;
-	value |= (axi->wr_osr_lmt << XGMAC_WR_OSR_LMT_SHIFT) &
+	value |= (axi->axi_wr_osr_lmt << XGMAC_WR_OSR_LMT_SHIFT) &
 		XGMAC_WR_OSR_LMT;
 
 	value &= ~XGMAC_RD_OSR_LMT;
-	value |= (axi->rd_osr_lmt << XGMAC_RD_OSR_LMT_SHIFT) &
+	value |= (axi->axi_rd_osr_lmt << XGMAC_RD_OSR_LMT_SHIFT) &
 		XGMAC_RD_OSR_LMT;
 
-	if (!axi->fb)
+	if (!axi->axi_fb)
 		value |= XGMAC_UNDEF;
 
 	value &= ~XGMAC_BLEN;
 	for (i = 0; i < AXI_BLEN; i++) {
-		switch (axi->blen[i]) {
+		switch (axi->axi_blen[i]) {
 		case 256:
 			value |= XGMAC_BLEN256;
 			break;

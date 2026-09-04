@@ -1,15 +1,10 @@
-// SPDX-License-Identifier: (GPL-2.0+ OR BSD-3-Clause)
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Core driver for the S32 CC (Common Chassis) pin controller
  *
- * Copyright 2017-2025 NXP
+ * Copyright 2017-2022,2024 NXP
  * Copyright (C) 2022 SUSE LLC
  * Copyright 2015-2016 Freescale Semiconductor, Inc.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
  */
 
 #include <linux/bitops.h>
@@ -31,8 +26,7 @@
 #include "../core.h"
 #include "../pinconf.h"
 #include "../pinctrl-utils.h"
-#include "pinctrl-s32g.h"
-#include "pinctrl-s32r45.h"
+#include "pinctrl-s32.h"
 
 #define S32_PIN_ID_SHIFT	4
 #define S32_PIN_ID_MASK		GENMASK(31, S32_PIN_ID_SHIFT)
@@ -466,6 +460,22 @@ static const struct pinmux_ops s32_pmx_ops = {
 	.gpio_set_direction = s32_pmx_gpio_set_direction,
 };
 
+/* Set the reserved elements as -1 */
+static const int support_slew[] = {208, -1, -1, -1, 166, 150, 133, 83};
+
+static int s32_get_slew_regval(int arg)
+{
+	unsigned int i;
+
+	/* Translate a real slew rate (MHz) to a register value */
+	for (i = 0; i < ARRAY_SIZE(support_slew); i++) {
+		if (arg == support_slew[i])
+			return i;
+	}
+
+	return -EINVAL;
+}
+
 static inline void s32_pin_set_pull(enum pin_config_param param,
 				   unsigned int *mask, unsigned int *config)
 {
@@ -493,6 +503,7 @@ static int s32_parse_pincfg(unsigned long pincfg, unsigned int *mask,
 {
 	enum pin_config_param param;
 	u32 arg;
+	int ret;
 
 	param = pinconf_to_config_param(pincfg);
 	arg = pinconf_to_config_argument(pincfg);
@@ -524,7 +535,10 @@ static int s32_parse_pincfg(unsigned long pincfg, unsigned int *mask,
 		*mask |= S32_MSCR_IBE;
 		break;
 	case PIN_CONFIG_SLEW_RATE:
-		*config |= S32_MSCR_SRE(arg);
+		ret = s32_get_slew_regval(arg);
+		if (ret < 0)
+			return ret;
+		*config |= S32_MSCR_SRE((u32)ret);
 		*mask |= S32_MSCR_SRE(~0);
 		break;
 	case PIN_CONFIG_BIAS_DISABLE:
@@ -680,7 +694,7 @@ static bool s32_pinctrl_should_save(struct s32_pinctrl *ipctl,
 	return false;
 }
 
-static int s32_pinctrl_suspend(struct device *dev)
+int s32_pinctrl_suspend(struct device *dev)
 {
 	struct platform_device *pdev = to_platform_device(dev);
 	struct s32_pinctrl *ipctl = platform_get_drvdata(pdev);
@@ -707,7 +721,7 @@ static int s32_pinctrl_suspend(struct device *dev)
 	return 0;
 }
 
-static int s32_pinctrl_resume(struct device *dev)
+int s32_pinctrl_resume(struct device *dev)
 {
 	struct platform_device *pdev = to_platform_device(dev);
 	struct s32_pinctrl *ipctl = platform_get_drvdata(pdev);
@@ -809,10 +823,6 @@ static int s32_pinctrl_parse_functions(struct device_node *np,
 		return -ENOMEM;
 
 	for_each_child_of_node_scoped(np, child) {
-		if (info->grp_index >= info->ngroups) {
-			dev_err(info->dev, "Invalid grp_index: %d\n", info->grp_index);
-			return -EINVAL;
-		}
 		groups[i] = child->name;
 		grp = &info->groups[info->grp_index++];
 		ret = s32_pinctrl_parse_groups(child, grp, info);
@@ -825,13 +835,6 @@ static int s32_pinctrl_parse_functions(struct device_node *np,
 
 	return 0;
 }
-
-static const struct of_device_id s32_pinctrl_of_match[] = {
-	{ .compatible = "nxp,s32g-siul2-pinctrl", .data = &s32g_pinctrl_data },
-	{ .compatible = "nxp,s32r45-siul2-pinctrl", .data = &s32r45_pinctrl_data },
-	{ /* sentinel */ }
-};
-MODULE_DEVICE_TABLE(of, s32_pinctrl_of_match);
 
 static int s32_pinctrl_probe_dt(struct platform_device *pdev,
 				struct s32_pinctrl *ipctl)
@@ -913,18 +916,17 @@ static int s32_pinctrl_probe_dt(struct platform_device *pdev,
 	return 0;
 }
 
-static int s32_pinctrl_probe(struct platform_device *pdev)
+int s32_pinctrl_probe(struct platform_device *pdev,
+		      const struct s32_pinctrl_soc_data *soc_data)
 {
-	const struct s32_pinctrl_soc_data *soc_data;
+	struct s32_pinctrl *ipctl;
+	int ret;
+	struct pinctrl_desc *s32_pinctrl_desc;
+	struct s32_pinctrl_soc_info *info;
 #ifdef CONFIG_PM_SLEEP
 	struct s32_pinctrl_context *saved_context;
 #endif
-	struct pinctrl_desc *s32_pinctrl_desc;
-	struct s32_pinctrl_soc_info *info;
-	struct s32_pinctrl *ipctl;
-	int ret;
 
-	soc_data = of_device_get_match_data(&pdev->dev);
 	if (!soc_data || !soc_data->pins || !soc_data->npins) {
 		dev_err(&pdev->dev, "wrong pinctrl info\n");
 		return -EINVAL;
@@ -968,6 +970,12 @@ static int s32_pinctrl_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	ipctl->pctl = devm_pinctrl_register(&pdev->dev, s32_pinctrl_desc,
+					    ipctl);
+	if (IS_ERR(ipctl->pctl))
+		return dev_err_probe(&pdev->dev, PTR_ERR(ipctl->pctl),
+				     "could not register s32 pinctrl driver\n");
+
 #ifdef CONFIG_PM_SLEEP
 	saved_context = &ipctl->saved_context;
 	saved_context->pads =
@@ -978,37 +986,7 @@ static int s32_pinctrl_probe(struct platform_device *pdev)
 		return -ENOMEM;
 #endif
 
-	ipctl->pctl = devm_pinctrl_register(&pdev->dev, s32_pinctrl_desc,
-					    ipctl);
-	if (IS_ERR(ipctl->pctl))
-		return dev_err_probe(&pdev->dev, PTR_ERR(ipctl->pctl),
-				     "could not register s32 pinctrl driver\n");
-
 	dev_info(&pdev->dev, "initialized s32 pinctrl driver\n");
 
 	return 0;
 }
-
-#ifdef CONFIG_PM_SLEEP
-static const struct dev_pm_ops s32_pinctrl_pm_ops = {
-	LATE_SYSTEM_SLEEP_PM_OPS(s32_pinctrl_suspend, s32_pinctrl_resume)
-};
-#endif
-
-static struct platform_driver s32cc_pinctrl_driver = {
-	.driver = {
-		.name = "s32cc-siul2-pinctrl",
-		.of_match_table = s32_pinctrl_of_match,
-#ifdef CONFIG_PM_SLEEP
-		.pm = pm_sleep_ptr(&s32_pinctrl_pm_ops),
-#endif
-		.suppress_bind_attrs = true,
-	},
-	.probe = s32_pinctrl_probe,
-};
-
-builtin_platform_driver(s32cc_pinctrl_driver);
-
-MODULE_AUTHOR("NXP");
-MODULE_DESCRIPTION("NXP S32CC pinctrl driver");
-MODULE_LICENSE("GPL");

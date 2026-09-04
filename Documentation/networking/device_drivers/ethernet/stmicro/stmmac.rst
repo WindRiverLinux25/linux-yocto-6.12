@@ -569,30 +569,30 @@ For DMA AXI parameters, we have:
 
 1) Enable AXI LPI::
 
-        bool lpi_en;
-        bool xit_frm;
+        bool axi_lpi_en;
+        bool axi_xit_frm;
 
 2) Set AXI Write / Read maximum outstanding requests::
 
-        u32 wr_osr_lmt;
-        u32 rd_osr_lmt;
+        u32 axi_wr_osr_lmt;
+        u32 axi_rd_osr_lmt;
 
 3) Set AXI 4KB bursts::
 
-        bool kbbe;
+        bool axi_kbbe;
 
 4) Set AXI maximum burst length map::
 
-        u32 blen[AXI_BLEN];
+        u32 axi_blen[AXI_BLEN];
 
 5) Set AXI Fixed burst / mixed burst::
 
-        bool fb;
-        bool mb;
+        bool axi_fb;
+        bool axi_mb;
 
 6) Set AXI rebuild incrx mode::
 
-        bool rb;
+        bool axi_rb;
 
 ::
 
