@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 //
 // Copyright 2013 Freescale Semiconductor, Inc.
-// Copyright 2020-2021, 2024 NXP
+// Copyright 2020-2022, 2024 NXP
 //
 // Freescale DSPI driver
 // This file contains a driver for the Freescale DSPI
@@ -953,18 +953,14 @@ static int dspi_transfer_one_message(struct spi_controller *ctlr,
 	bool cs = false;
 	int status = 0;
 	u32 val = 0;
-	bool cs_change = false;
 
 	message->actual_length = 0;
 
-	/* Put DSPI in running mode if halted. */
-	regmap_read(dspi->regmap, SPI_MCR, &val);
-	if (val & SPI_MCR_HALT) {
-		regmap_update_bits(dspi->regmap, SPI_MCR, SPI_MCR_HALT, 0);
-		while (regmap_read(dspi->regmap, SPI_SR, &val) >= 0 &&
-		       !(val & SPI_SR_TXRXS))
-			;
-	}
+	/* Put DSPI in running mode */
+	regmap_update_bits(dspi->regmap, SPI_MCR, SPI_MCR_HALT, 0);
+	while (regmap_read(dspi->regmap, SPI_SR, &val) >= 0 &&
+	       !(val & SPI_SR_TXRXS))
+		;
 
 	list_for_each_entry(transfer, &message->transfers, transfer_list) {
 		dspi->cur_transfer = transfer;
@@ -1042,14 +1038,11 @@ static int dspi_transfer_one_message(struct spi_controller *ctlr,
 			dspi_deassert_cs(spi, &cs);
 	}
 
-	if (status || !cs_change) {
-		/* Put DSPI in stop mode */
-		regmap_update_bits(dspi->regmap, SPI_MCR,
-				   SPI_MCR_HALT, SPI_MCR_HALT);
-		while (regmap_read(dspi->regmap, SPI_SR, &val) >= 0 &&
-		       val & SPI_SR_TXRXS)
-			;
-	}
+	/* Put DSPI in stop mode */
+	regmap_update_bits(dspi->regmap, SPI_MCR, SPI_MCR_HALT, SPI_MCR_HALT);
+	while (regmap_read(dspi->regmap, SPI_SR, &val) >= 0 &&
+	       val & SPI_SR_TXRXS)
+		;
 
 	message->status = status;
 	spi_finalize_current_message(ctlr);
