@@ -5,7 +5,7 @@
  * Copyright 2017-2022,2024 NXP
  * Copyright (C) 2022 SUSE LLC
  * Copyright 2015-2016 Freescale Semiconductor, Inc.
- * Copyright 2017-2024 NXP
+ * Copyright 2017-2025 NXP
  * Copyright (C) 2022 SUSE LLC
  *
  * This program is free software; you can redistribute it and/or modify
