@@ -1067,7 +1067,7 @@ static int fsl_lpspi_probe(struct platform_device *pdev)
 		of_property_read_bool((&pdev->dev)->of_node,
 				      "nxp,reset-at-underrun");
 
-	ret = spi_register_controller(controller);
+	ret = devm_spi_register_controller(&pdev->dev, controller);
 	if (ret < 0) {
 		dev_err_probe(&pdev->dev, ret, "spi_register_controller error\n");
 		goto free_dma;
