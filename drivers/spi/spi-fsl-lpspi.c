@@ -3,7 +3,7 @@
 // Freescale i.MX7ULP LPSPI driver
 //
 // Copyright 2016 Freescale Semiconductor, Inc.
-// Copyright 2018, 2023 NXP
+// Copyright 2018, 2023, 2025 NXP
 
 #include <linux/bitfield.h>
 #include <linux/clk.h>
