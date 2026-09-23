@@ -970,7 +970,7 @@ static int dspi_transfer_one_message(struct spi_controller *ctlr,
 	if (val & SPI_MCR_HALT) {
 		regmap_update_bits(dspi->regmap, SPI_MCR, SPI_MCR_HALT, 0);
 		while (regmap_read(dspi->regmap, SPI_SR, &val) >= 0 &&
-				!(val & SPI_SR_TXRXS))
+		       !(val & SPI_SR_TXRXS))
 			;
 	}
 
